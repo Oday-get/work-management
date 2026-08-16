@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>نظام إدارة العمل والشحن</title>
+    <!-- تصميم سريع وأنيق بـ Bootstrap -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+</head>
+<body class="bg-light">
+
+<div class="container py-4">
+    <h2 class="text-center mb-4 text-primary">⚡ نظام إدارة العمل والشحن ⚡</h2>
+
+    <div class="row g-4">
+        <!-- 1. نموذج تسجيل شخص جديد -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">👤 تسجيل شخص جديد</div>
+                <div class="card-body">
+                    <form action="/add-person" method="post">
+                        <div class="mb-3">
+                            <label class="form-label">الاسم:</label>
+                            <input type="text" name="name" class="form-control" required placeholder="أدخل اسم الشخص">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">حفظ الشخص</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. نموذج تسجيل عمل يومي -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">📝 تسجيل العمل اليومي</div>
+                <div class="card-body">
+                    <form action="/add-work" method="post">
+                        <div class="mb-2">
+                            <label class="form-label">التاريخ / اليوم:</label>
+                            <input type="text" name="date" class="form-control" required placeholder="مثال: 2026-08-16">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">الاسم:</label>
+                            <select name="name" class="form-select" required>
+                                <option value="" disabled selected>اختر الشخص...</option>
+                                <option th:each="p : ${persons}" th:value="${p.name}" th:text="${p.name}"></option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col mb-2">
+                                <label class="form-label">مع شاحن:</label>
+                                <input type="number" name="numphone" class="form-control" value="0" min="0" required>
+                            </div>
+                            <div class="col mb-2">
+                                <label class="form-label">بدون شاحن:</label>
+                                <input type="number" name="numphone2" class="form-control" value="0" min="0" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 mt-2">تسجيل العمل</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. كرت البحث والحسابات -->
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-info text-dark">🔍 بحث وحساب إجمالي للشخص</div>
+        <div class="card-body">
+            <form action="/search" method="get" class="row g-2">
+                <div class="col-md-9">
+                    <input type="text" name="searchName" class="form-control" placeholder="أدخل اسم الشخص للبحث..." th:value="${searchName}">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-info w-100 text-white">بحث وحساب</button>
+                </div>
+            </form>
+
+            <!-- نتائج البحث إن وجدت -->
+            <div th:if="${searchResults != null}" class="mt-3">
+                <hr>
+                <h5>نتائج البحث لـ: <span class="text-primary" th:text="${searchName}"></span></h5>
+                <ul class="list-group mb-3">
+                    <li class="list-group-item d-flex justify-content-between align-items-center" th:each="item : ${searchResults}">
+                        <span>التاريخ: <strong th:text="${item.date}"></strong></span>
+                        <span>مع شاحن: <span class="badge bg-primary" th:text="${item.numphone}"></span></span>
+                        <span>بدون شاحن: <span class="badge bg-secondary" th:text="${item.numphone2}"></span></span>
+                    </li>
+                </ul>
+
+                <div class="alert alert-success d-flex justify-content-around">
+                    <div>مجموع الهواتف (مع شاحن): <strong th:text="${totalPhone1}"></strong></div>
+                    <div>مجموع الهواتف (بدون شاحن): <strong th:text="${totalPhone2}"></strong></div>
+                    <div>الحساب الكامل: <strong class="fs-5" th:text="${totalSalary} + ' شيكل/دينار'"></strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
