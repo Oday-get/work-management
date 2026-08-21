@@ -1,6 +1,7 @@
 package com.example.workmanagement.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "works")
@@ -10,32 +11,75 @@ public class Work {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String date;
-    private String name;
-    private int numphone;
-    private int numphone2;
+    private Integer phonesWithCharger;    // عدد الهواتف بشاحن (1 ₪)
 
-    public Work() {} // Constructor فارغ متطلب لـ JPA
+    private Integer phonesWithoutCharger; // عدد الهواتف بدون شاحن (2 ₪)
 
-    public Work(String date, String name, int numphone, int numphone2) {
-        this.date = date;
-        this.name = name;
-        this.numphone = numphone;
-        this.numphone2 = numphone2;
+    private Double totalSalary;           // المجموع الإجمالي بالشيقل
+
+    private LocalDate workDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "person_id")
+    private Person person;
+
+    public Work() {
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Work(Integer phonesWithCharger, Integer phonesWithoutCharger, Double totalSalary, LocalDate workDate, Person person) {
+        this.phonesWithCharger = phonesWithCharger;
+        this.phonesWithoutCharger = phonesWithoutCharger;
+        this.totalSalary = totalSalary;
+        this.workDate = workDate;
+        this.person = person;
+    }
 
-    public String getDate() { return date; }
-    public void setDate(String date) { this.date = date; }
+    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public int getNumphone() { return numphone; }
-    public void setNumphone(int numphone) { this.numphone = numphone; }
+    public Integer getPhonesWithCharger() {
+        return phonesWithCharger;
+    }
 
-    public int getNumphone2() { return numphone2; }
-    public void setNumphone2(int numphone2) { this.numphone2 = numphone2; }
+    public void setPhonesWithCharger(Integer phonesWithCharger) {
+        this.phonesWithCharger = phonesWithCharger;
+    }
+
+    public Integer getPhonesWithoutCharger() {
+        return phonesWithoutCharger;
+    }
+
+    public void setPhonesWithoutCharger(Integer phonesWithoutCharger) {
+        this.phonesWithoutCharger = phonesWithoutCharger;
+    }
+
+    public Double getTotalSalary() {
+        return totalSalary;
+    }
+
+    public void setTotalSalary(Double totalSalary) {
+        this.totalSalary = totalSalary;
+    }
+
+    public LocalDate getWorkDate() {
+        return workDate;
+    }
+
+    public void setWorkDate(LocalDate workDate) {
+        this.workDate = workDate;
+    }
+
+    public Person getPerson() {
+        return person;
+    }
+
+    public void setPerson(Person person) {
+        this.person = person;
+    }
 }

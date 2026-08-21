@@ -1,101 +1,361 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>نظام إدارة العمل والشحن</title>
-    <!-- تصميم سريع وأنيق بـ Bootstrap -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - إدارة الأعمال والحسابات</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Cairo', sans-serif; } </style>
 </head>
-<body class="bg-light">
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
 
-<div class="container py-4">
-    <h2 class="text-center mb-4 text-primary">⚡ نظام إدارة العمل والشحن ⚡</h2>
+<div class="max-w-7xl mx-auto space-y-6">
 
-    <div class="row g-4">
-        <!-- 1. نموذج تسجيل شخص جديد -->
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">👤 تسجيل شخص جديد</div>
-                <div class="card-body">
-                    <form action="/add-person" method="post">
-                        <div class="mb-3">
-                            <label class="form-label">الاسم:</label>
-                            <input type="text" name="name" class="form-control" required placeholder="أدخل اسم الشخص">
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">حفظ الشخص</button>
+    <!-- الهيدر العلوي -->
+    <div class="bg-white rounded-xl shadow-md p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-r-4 border-blue-600">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">📊 نظام إدارة العمل والحسابات</h1>
+            <p class="text-gray-500 text-sm mt-1">لوحة تحكم المدير والإدارة العامة</p>
+        </div>
+
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow">
+                <span>تسجيل الخروج</span>
+                <span>🚪</span>
+            </button>
+        </form>
+    </div>
+
+    <!-- رسائل التنبيه والنجاح -->
+    <div th:if="${successMessage}" class="bg-green-100 border-r-4 border-green-500 text-green-700 p-4 rounded-lg shadow-sm text-sm font-semibold">
+        <span th:text="${successMessage}"></span>
+    </div>
+    <div th:if="${errorMessage}" class="bg-red-100 border-r-4 border-red-500 text-red-700 p-4 rounded-lg shadow-sm text-sm font-semibold">
+        <span th:text="${errorMessage}"></span>
+    </div>
+
+    <!-- 🔔 صندوق الإشعارات: طلبات الإيداع المعلقة بانتظار موافقة الأدمن -->
+    <div th:if="${not #lists.isEmpty(pendingRequests)}" class="bg-amber-50 border-r-4 border-amber-500 p-6 rounded-xl shadow-md space-y-3">
+        <div class="flex items-center gap-2">
+            <span class="text-xl animate-bounce">🔔</span>
+            <h2 class="text-base font-bold text-amber-900">طلبات إيداع جديدة بانتظار التأكيد والتحقق من المحفظة</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div th:each="req : ${pendingRequests}" class="bg-white p-4 rounded-lg border border-amber-200 shadow-xs flex flex-col justify-between gap-3">
+                <div>
+                    <div class="flex justify-between items-start">
+                        <span class="font-bold text-gray-800 text-sm" th:text="${req.person.name}"></span>
+                        <span class="text-[10px] text-gray-400" th:text="${#temporals.format(req.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">
+                        طلب توثيق إيداع بمبلغ:
+                        <b class="text-emerald-600 text-base font-extrabold" th:text="${#numbers.formatDecimal(req.amount, 1, 'COMMA', 2, 'POINT')} + ' ₪'"></b>
+                    </p>
+                </div>
+
+                <div class="flex gap-2 border-t pt-2">
+                    <form th:action="@{/admin/approve-deposit}" method="post" class="w-1/2">
+                        <input type="hidden" name="requestId" th:value="${req.id}" />
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-md text-xs transition">
+                            تأكيد وإضافة ✅
+                        </button>
+                    </form>
+                    <form th:action="@{/admin/reject-deposit}" method="post" class="w-1/2">
+                        <input type="hidden" name="requestId" th:value="${req.id}" />
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 rounded-md text-xs transition">
+                            رفض ✖
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- 2. نموذج تسجيل عمل يومي -->
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-success text-white">📝 تسجيل العمل اليومي</div>
-                <div class="card-body">
-                    <form action="/add-work" method="post">
-                        <div class="mb-2">
-                            <label class="form-label">التاريخ / اليوم:</label>
-                            <input type="text" name="date" class="form-control" required placeholder="مثال: 2026-08-16">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">الاسم:</label>
-                            <select name="name" class="form-select" required>
+    <!-- ==================== قسم التقارير المالية والبطاقات (في المقدمة) ==================== -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- إجمالي الأعمال -->
+        <div class="bg-blue-600 p-5 rounded-xl text-white shadow-md flex flex-col justify-between">
+            <span class="text-xs font-semibold opacity-80">إجمالي الأعمال</span>
+            <p class="text-2xl font-bold mt-2" th:text="${totalWorkCost != null ? #numbers.formatDecimal(totalWorkCost, 1, 'COMMA', 2, 'POINT') : '0.00'} + ' ₪'"></p>
+        </div>
+
+        <!-- جوالات بشاحن -->
+        <div class="bg-amber-600 p-5 rounded-xl text-white shadow-md flex flex-col justify-between">
+            <span class="text-xs font-semibold opacity-80">جوالات بشاحن</span>
+            <p class="text-2xl font-bold mt-2" th:text="${totalPhonesWithCharger != null ? totalPhonesWithCharger : 0}"></p>
+        </div>
+
+        <!-- جوالات بدون شاحن -->
+        <div class="bg-purple-600 p-5 rounded-xl text-white shadow-md flex flex-col justify-between">
+            <span class="text-xs font-semibold opacity-80">جوالات بدون شاحن</span>
+            <p class="text-2xl font-bold mt-2" th:text="${totalPhonesWithoutCharger != null ? totalPhonesWithoutCharger : 0}"></p>
+        </div>
+
+        <!-- صافي الربح (الإيداعات) -->
+        <div class="bg-emerald-600 p-5 rounded-xl text-white shadow-md flex flex-col justify-between">
+            <span class="text-xs font-semibold opacity-80">صافي الربح (الإيداعات)</span>
+            <p class="text-2xl font-bold mt-2" th:text="${totalDeposits != null ? #numbers.formatDecimal(totalDeposits, 1, 'COMMA', 2, 'POINT') : '0.00'} + ' ₪'"></p>
+        </div>
+    </div>
+
+    <!-- أزرار تصفية الفترة الزمنية للتقارير -->
+    <div class="bg-white p-4 rounded-xl shadow-md flex flex-wrap items-center gap-2 border border-gray-100">
+        <span class="text-xs font-bold text-gray-600 ml-2">فلترة التقارير حسب الفترة:</span>
+        <a th:href="@{/admin(period='TODAY')}"
+           th:class="${period == 'TODAY'} ? 'bg-blue-600 text-white px-3.5 py-1.5 rounded-lg shadow text-xs font-semibold' : 'bg-gray-100 text-gray-700 px-3.5 py-1.5 rounded-lg hover:bg-gray-200 text-xs font-semibold transition'">اليوم</a>
+
+        <a th:href="@{/admin(period='YESTERDAY')}"
+           th:class="${period == 'YESTERDAY'} ? 'bg-blue-600 text-white px-3.5 py-1.5 rounded-lg shadow text-xs font-semibold' : 'bg-gray-100 text-gray-700 px-3.5 py-1.5 rounded-lg hover:bg-gray-200 text-xs font-semibold transition'">الأمس</a>
+
+        <a th:href="@{/admin(period='WEEK')}"
+           th:class="${period == 'WEEK'} ? 'bg-blue-600 text-white px-3.5 py-1.5 rounded-lg shadow text-xs font-semibold' : 'bg-gray-100 text-gray-700 px-3.5 py-1.5 rounded-lg hover:bg-gray-200 text-xs font-semibold transition'">آخر أسبوع</a>
+
+        <a th:href="@{/admin(period='MONTH')}"
+           th:class="${period == 'MONTH'} ? 'bg-blue-600 text-white px-3.5 py-1.5 rounded-lg shadow text-xs font-semibold' : 'bg-gray-100 text-gray-700 px-3.5 py-1.5 rounded-lg hover:bg-gray-200 text-xs font-semibold transition'">آخر شهر</a>
+
+        <a th:href="@{/admin(period='ALL')}"
+           th:class="${period == 'ALL'} ? 'bg-blue-600 text-white px-3.5 py-1.5 rounded-lg shadow text-xs font-semibold' : 'bg-gray-100 text-gray-700 px-3.5 py-1.5 rounded-lg hover:bg-gray-200 text-xs font-semibold transition'">الكل</a>
+    </div>
+    <!-- ================================================================= -->
+
+    <!-- القسم الأول: إضافة شخص + تسجيل العمل -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- نموذج إضافة شخص جديد -->
+        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b flex items-center gap-2">
+                <span>👤</span> إضافة شخص جديد
+            </h2>
+            <form th:action="@{/add-person}" method="post" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">الاسم الكامل</label>
+                    <input type="text" name="name" required placeholder="أدخل اسم الشخص"
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">اسم المستخدم (Username)</label>
+                    <input type="text" name="username" required placeholder="اسم المستخدم لتسجيل الدخول"
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">كلمة المرور</label>
+                    <input type="password" name="password" required placeholder="كلمة المرور"
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">الرصيد الأولي (اختياري)</label>
+                    <input type="number" step="0.01" name="balance" value="0.0"
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition shadow text-sm">
+                    حفظ إضافة الشخص ➕
+                </button>
+            </form>
+        </div>
+
+        <!-- نموذج تسجيل العمل -->
+        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100 lg:col-span-2">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b flex items-center gap-2">
+                <span>📱</span> تسجيل العمل (دعم إدخالات متعددة لنفس التاريخ)
+            </h2>
+            <form th:action="@{/add-work}" method="post" class="space-y-4">
+
+                <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <label class="block text-xs font-bold text-blue-800 mb-1">📅 تاريخ العمل لجميع الإدخالات أدناه:</label>
+                    <input type="date" name="workDate" id="workDateInput" required
+                           class="w-full md:w-1/2 px-3 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white">
+                </div>
+
+                <div id="workRowsContainer" class="space-y-3">
+                    <div class="work-row grid grid-cols-1 md:grid-cols-12 gap-2 items-center bg-gray-50 p-3 rounded-lg border">
+                        <div class="md:col-span-5">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">الشخص المسؤول</label>
+                            <select name="personId" required class="w-full px-2 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-blue-500">
                                 <option value="" disabled selected>اختر الشخص...</option>
-                                <option th:each="p : ${persons}" th:value="${p.name}" th:text="${p.name}"></option>
+                                <option th:each="p : ${persons}" th:value="${p.id}" th:text="${p.name}"></option>
                             </select>
                         </div>
-                        <div class="row">
-                            <div class="col mb-2">
-                                <label class="form-label">مع شاحن:</label>
-                                <input type="number" name="numphone" class="form-control" value="0" min="0" required>
-                            </div>
-                            <div class="col mb-2">
-                                <label class="form-label">بدون شاحن:</label>
-                                <input type="number" name="numphone2" class="form-control" value="0" min="0" required>
-                            </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">مع شاحن (1 ₪)</label>
+                            <input type="number" name="phonesWithCharger" value="0" min="0" class="w-full px-2 py-1.5 border rounded-lg text-xs">
                         </div>
-                        <button type="submit" class="btn btn-success w-100 mt-2">تسجيل العمل</button>
-                    </form>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">بدون شاحن (2 ₪)</label>
+                            <input type="number" name="phonesWithoutCharger" value="0" min="0" class="w-full px-2 py-1.5 border rounded-lg text-xs">
+                        </div>
+                        <div class="md:col-span-1 text-center pt-4">
+                            <button type="button" onclick="removeRow(this)" class="text-red-500 hover:text-red-700 font-bold text-sm" title="حذف السطر">✖</button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- 3. كرت البحث والحسابات -->
-    <div class="card shadow-sm mt-4">
-        <div class="card-header bg-info text-dark">🔍 بحث وحساب إجمالي للشخص</div>
-        <div class="card-body">
-            <form action="/search" method="get" class="row g-2">
-                <div class="col-md-9">
-                    <input type="text" name="searchName" class="form-control" placeholder="أدخل اسم الشخص للبحث..." th:value="${searchName}">
-                </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-info w-100 text-white">بحث وحساب</button>
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
+                    <button type="button" onclick="addWorkRow()" class="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold px-4 py-2 rounded-lg text-xs transition border">
+                        ➕ إضافة عمل آخر لنفس التاريخ
+                    </button>
+                    <button type="submit" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2 rounded-lg transition shadow text-xs">
+                        حفظ جميع الأعمال دفعة واحدة 🚀
+                    </button>
                 </div>
             </form>
+        </div>
 
-            <!-- نتائج البحث إن وجدت -->
-            <div th:if="${searchResults != null}" class="mt-3">
-                <hr>
-                <h5>نتائج البحث لـ: <span class="text-primary" th:text="${searchName}"></span></h5>
-                <ul class="list-group mb-3">
-                    <li class="list-group-item d-flex justify-content-between align-items-center" th:each="item : ${searchResults}">
-                        <span>التاريخ: <strong th:text="${item.date}"></strong></span>
-                        <span>مع شاحن: <span class="badge bg-primary" th:text="${item.numphone}"></span></span>
-                        <span>بدون شاحن: <span class="badge bg-secondary" th:text="${item.numphone2}"></span></span>
-                    </li>
-                </ul>
+    </div>
 
-                <div class="alert alert-success d-flex justify-content-around">
-                    <div>مجموع الهواتف (مع شاحن): <strong th:text="${totalPhone1}"></strong></div>
-                    <div>مجموع الهواتف (بدون شاحن): <strong th:text="${totalPhone2}"></strong></div>
-                    <div>الحساب الكامل: <strong class="fs-5" th:text="${totalSalary} + ' شيكل/دينار'"></strong></div>
+    <!-- القسم الثاني: الإيداع المباشر وقائمة الأرصدة -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- نموذج الإيداع المباشر بالأدمن -->
+        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b flex items-center gap-2">
+                <span>💵</span> إيداع مباشر لحساب (بدون طلب)
+            </h2>
+            <form th:action="@{/deposit}" method="post" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">الشخص المستلم</label>
+                    <select name="personId" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        <option value="" disabled selected>اختر الشخص...</option>
+                        <option th:each="p : ${persons}" th:value="${p.id}" th:text="${p.name}"></option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">مبلغ الإيداع (₪)</label>
+                    <input type="number" step="0.01" name="amount" required placeholder="0.00" min="0.01"
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition shadow text-sm">
+                    تنفيذ الإيداع المباشر 💳
+                </button>
+            </form>
+        </div>
+
+        <!-- عرض الأرصدة الحالية -->
+        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100 lg:col-span-2">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b">👥 قائمة الأشخاص والأرصدة الحالية</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pl-1">
+                <div th:each="p : ${persons}" class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
+                    <div>
+                        <span class="font-bold text-gray-800 block text-xs" th:text="${p.name}"></span>
+                        <span class="text-[10px] text-gray-400" th:text="'@' + ${p.username}"></span>
+                    </div>
+                    <span class="font-bold text-xs px-2 py-1 rounded-md"
+                          th:text="${#numbers.formatDecimal(p.balance, 1, 'COMMA', 2, 'POINT')} + ' ₪'"
+                          th:classappend="${p.balance >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                    </span>
                 </div>
             </div>
         </div>
+
     </div>
+
+    <!-- القسم الثالث: جدول الحركات العامة مع البحث المباشر -->
+    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4 pb-2 border-b">
+            <div>
+                <h2 class="text-lg font-bold text-gray-800">📜 سجل الحركات المالية العامة</h2>
+                <p class="text-xs text-gray-400 mt-0.5">البحث الفوري يعمل مباشرة بمجرد كتابة اسم الشخص</p>
+            </div>
+
+            <div class="relative w-full md:w-80">
+                <input type="text"
+                       id="liveSearchInput"
+                       oninput="filterTransactions()"
+                       placeholder="🔍 ابدأ الكتابة للبحث المباشر باسم الشخص..."
+                       class="w-full px-4 py-2 border rounded-lg text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
+            <table class="w-full text-right text-sm" id="transactionsTable">
+                <thead class="bg-gray-50 sticky top-0 border-b">
+                <tr>
+                    <th class="px-3 py-2.5 text-gray-600">التاريخ</th>
+                    <th class="px-3 py-2.5 text-gray-600">الشخص</th>
+                    <th class="px-3 py-2.5 text-gray-600">النوع</th>
+                    <th class="px-3 py-2.5 text-gray-600">التفاصيل</th>
+                    <th class="px-3 py-2.5 text-gray-600">المبلغ</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                <tr th:each="t : ${transactions}" class="transaction-row hover:bg-gray-50 transition">
+                    <td class="px-3 py-3 text-xs text-gray-500" th:text="${t.date}"></td>
+                    <td class="person-name-cell px-3 py-3 font-semibold text-gray-800" th:text="${t.personName}"></td>
+                    <td class="px-3 py-3 text-xs">
+                        <span th:if="${t.type == 'WORK'}" class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">عمل</span>
+                        <span th:if="${t.type == 'DEPOSIT'}" class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">إيداع</span>
+                    </td>
+                    <td class="px-3 py-3 text-xs text-gray-600">
+                        <span th:if="${t.type == 'WORK'}">
+                            شاحن: <b th:text="${t.phonesWithCharger}"></b> | بدون: <b th:text="${t.phonesWithoutCharger}"></b>
+                        </span>
+                        <span th:if="${t.type == 'DEPOSIT'}" class="text-green-600 font-semibold">
+                            إضافة رصيد
+                        </span>
+                    </td>
+                    <td class="px-3 py-3 font-bold text-sm"
+                        th:classappend="${t.type == 'WORK' ? 'text-red-600' : 'text-green-600'}">
+                        <span th:text="${t.type == 'WORK' ? '-' : '+'}"></span>
+                        <span th:text="${#numbers.formatDecimal(t.amount, 1, 'COMMA', 2, 'POINT')} + ' ₪'"></span>
+                    </td>
+                </tr>
+                <tr id="noResultsRow" class="hidden">
+                    <td colspan="5" class="px-4 py-8 text-center text-gray-400">لا توجد نتائج تطابق اسم الشخص المكتوب</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
+
+<script>
+    document.getElementById('workDateInput').valueAsDate = new Date();
+
+    function addWorkRow() {
+        const container = document.getElementById('workRowsContainer');
+        const firstRow = container.querySelector('.work-row');
+        const newRow = firstRow.cloneNode(true);
+
+        newRow.querySelector('select').selectedIndex = 0;
+        newRow.querySelectorAll('input[type="number"]').forEach(input => input.value = 0);
+
+        container.appendChild(newRow);
+    }
+
+    function removeRow(button) {
+        const container = document.getElementById('workRowsContainer');
+        if (container.querySelectorAll('.work-row').length > 1) {
+            button.closest('.work-row').remove();
+        } else {
+            alert("يجب الإبقاء على سطر عمل واحد على الأقل!");
+        }
+    }
+
+    function filterTransactions() {
+        const input = document.getElementById('liveSearchInput').value.toLowerCase().trim();
+        const rows = document.querySelectorAll('.transaction-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const personName = row.querySelector('.person-name-cell').textContent.toLowerCase();
+            if (personName.includes(input)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const noResultsRow = document.getElementById('noResultsRow');
+        if (visibleCount === 0 && rows.length > 0) {
+            noResultsRow.classList.remove('hidden');
+        } else {
+            noResultsRow.classList.add('hidden');
+        }
+    }
+</script>
 
 </body>
 </html>

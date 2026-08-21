@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم الشخصية - حسابي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Cairo', sans-serif; } </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- الهيدر ومعلومات المستخدم -->
+    <div class="bg-white rounded-xl shadow-md p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-r-4 border-indigo-600">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">👋 مرحباً بك، <span th:text="${person.name}" class="text-indigo-600"></span></h1>
+            <p class="text-gray-500 text-sm mt-1">صفحة متابعة الحركات المالية والرصيد الشخصي</p>
+        </div>
+
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow">
+                <span>تسجيل الخروج</span>
+                <span>🚪</span>
+            </button>
+        </form>
+    </div>
+
+    <!-- رسائل النجاح والخطأ -->
+    <div th:if="${successMessage}" class="bg-green-100 border-r-4 border-green-500 text-green-700 p-4 rounded-lg shadow-sm text-sm font-semibold">
+        <span th:text="${successMessage}"></span>
+    </div>
+    <div th:if="${errorMessage}" class="bg-red-100 border-r-4 border-red-500 text-red-700 p-4 rounded-lg shadow-sm text-sm font-semibold">
+        <span th:text="${errorMessage}"></span>
+    </div>
+
+    <!-- الرصيد الحالي -->
+    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div>
+            <span class="text-xs font-bold text-gray-400 block uppercase tracking-wider">رصيدك الحالي</span>
+            <span class="text-3xl font-extrabold tracking-tight mt-1 block"
+                  th:text="${#numbers.formatDecimal(person.balance, 1, 'COMMA', 2, 'POINT')} + ' ₪'"
+                  th:classappend="${person.balance >= 0 ? 'text-emerald-600' : 'text-red-600'}">
+                </span>
+        </div>
+    </div>
+
+    <!-- نموذج إرسال طلب إيداع -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 shadow-sm space-y-4">
+        <div class="flex items-center gap-2 pb-2 border-b border-blue-200/60">
+            <span class="text-lg">📢</span>
+            <h3 class="text-sm font-bold text-gray-800">طلب توثيق إيداع جديد</h3>
+        </div>
+
+        <form th:action="@{/user/request-deposit}" method="post" class="flex flex-col sm:flex-row gap-2">
+            <input type="number" step="0.01" min="0.01" name="amount" required placeholder="أدخل قيمة المبلغ الذي قمت بتحويله (₪)"
+                   class="w-full sm:w-2/3 px-3 py-2 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+            <button type="submit" class="w-full sm:w-1/3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg text-xs transition shadow">
+                إرسال إشعار الإيداع للإدارة 📩
+            </button>
+        </form>
+    </div>
+
+    <!-- قسم طلبات الإيداع التي أرسلها المستخدم -->
+    <div th:if="${not #lists.isEmpty(userRequests)}" class="bg-white p-5 rounded-xl shadow-md border border-gray-100">
+        <h3 class="text-sm font-bold text-gray-800 mb-3 pb-2 border-b">⏳ حالة طلبات الإيداع المعلقة والمراجعة</h3>
+        <div class="space-y-2">
+            <div th:each="req : ${userRequests}" class="flex justify-between items-center p-3 rounded-lg border text-xs"
+                 th:classappend="${req.status.name() == 'PENDING' ? 'bg-amber-50 border-amber-200' : (req.status.name() == 'APPROVED' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200')}">
+                <div>
+                    <span class="font-bold text-gray-800" th:text="${#numbers.formatDecimal(req.amount, 1, 'COMMA', 2, 'POINT')} + ' ₪'"></span>
+                    <span class="text-[10px] text-gray-400 block mt-0.5" th:text="${#temporals.format(req.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+                </div>
+                <div>
+                    <span th:if="${req.status.name() == 'PENDING'}" class="bg-amber-200 text-amber-800 px-2.5 py-1 rounded-full font-bold">قيد المراجعة ⌛</span>
+                    <span th:if="${req.status.name() == 'APPROVED'}" class="bg-green-200 text-green-800 px-2.5 py-1 rounded-full font-bold">تم الإيداع ✅</span>
+                    <span th:if="${req.status.name() == 'REJECTED'}" class="bg-red-200 text-red-800 px-2.5 py-1 rounded-full font-bold">مرفوض ✖</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📜 سجل الحركات الحقيقي (الإيداعات المعتمدة والعمل) -->
+    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100 space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b">
+            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <span>📜</span>
+                <span>سجل الحركات المالية والأعمال</span>
+            </h2>
+            <span class="text-xs text-gray-500" th:text="'إجمالي الحركات: ' + ${#lists.size(transactions)}"></span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs">
+                <thead class="bg-gray-50 text-gray-600 uppercase font-semibold">
+                <tr>
+                    <th class="p-3">التاريخ</th>
+                    <th class="p-3">نوع الحركة</th>
+                    <th class="p-3">التفاصيل</th>
+                    <th class="p-3">المبلغ / التكلفة</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                <tr th:each="t : ${transactions}" class="hover:bg-gray-50 transition">
+                    <!-- التاريخ -->
+                    <td class="p-3 font-medium text-gray-600" th:text="${t.date}"></td>
+
+                    <!-- نوع الحركة -->
+                    <td class="p-3">
+                                <span th:if="${t.type == 'DEPOSIT'}" class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-bold">
+                                    إيداع ➕
+                                </span>
+                        <span th:if="${t.type == 'WORK'}" class="bg-rose-100 text-rose-800 px-2.5 py-1 rounded-full font-bold">
+                                    خصم عمل ➖
+                                </span>
+                    </td>
+
+                    <!-- التفاصيل (عدد الأجهزة بـ / بدون شاحن) -->
+                    <td class="p-3 text-gray-600">
+                                <span th:if="${t.type == 'WORK'}">
+                                    شاحن (<b th:text="${t.phonesWithCharger}"></b>) | بدون شاحن (<b th:text="${t.phonesWithoutCharger}"></b>)
+                                </span>
+                        <span th:if="${t.type == 'DEPOSIT'}" class="text-gray-400">
+                                    إيداع رصيد
+                                </span>
+                    </td>
+
+                    <!-- المبلغ -->
+                    <td class="p-3 font-bold"
+                        th:classappend="${t.type == 'DEPOSIT' ? 'text-emerald-600' : 'text-rose-600'}"
+                        th:text="${(t.type == 'DEPOSIT' ? '+' : '-') + #numbers.formatDecimal(t.amount, 1, 'COMMA', 2, 'POINT')} + ' ₪'">
+                    </td>
+                </tr>
+
+                <!-- في حال لا يوجد حركات -->
+                <tr th:if="${#lists.isEmpty(transactions)}">
+                    <td colspan="4" class="text-center py-6 text-gray-400">
+                        لا توجد حركات مسجلة في حسابك حتى الآن.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
